@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { Analytics } from '@vercel/analytics/react';
 import WelcomeScreen from './components/WelcomeScreen';
 import StudyRoom from './components/StudyRoom';
 import QuizGame from './components/QuizGame';
@@ -68,6 +69,7 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+      <Analytics />
     </div>
   );
 }
