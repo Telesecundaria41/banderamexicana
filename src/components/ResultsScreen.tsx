@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
-import { Trophy, RefreshCw, Star } from 'lucide-react';
+import { Trophy, RefreshCw, Star, FileText, Loader2 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
 
 interface ResultsScreenProps {
   name: string;
@@ -20,6 +21,7 @@ export default function ResultsScreen({
   totalQuestions,
   onRestart,
 }: ResultsScreenProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
   const totalScore = quizScore * 10 + matchScore; // 10 points per quiz question + match score
   const maxScore = totalQuestions * 10 + 50; // max 50 points for match game
   const percentage = (totalScore / maxScore) * 100;
@@ -55,6 +57,93 @@ export default function ResultsScreen({
       }, 250);
     }
   }, [percentage]);
+
+  const handleDownloadPDF = async () => {
+    setIsGenerating(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      // Background colors (Mexican Flag style)
+      doc.setFillColor(0, 104, 71); // Green
+      doc.rect(0, 0, 20, pageHeight, 'F');
+      
+      doc.setFillColor(255, 255, 255); // White
+      doc.rect(20, 0, pageWidth - 40, pageHeight, 'F');
+
+      doc.setFillColor(206, 17, 38); // Red
+      doc.rect(pageWidth - 20, 0, 20, pageHeight, 'F');
+
+      // Border
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(1);
+      doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+
+      // Header
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(30);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CONSTANCIA DE APRENDIZAJE', pageWidth / 2, 40, { align: 'center' });
+
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Evolución Histórica de la Bandera Mexicana', pageWidth / 2, 55, { align: 'center' });
+
+      // Content
+      doc.setFontSize(16);
+      doc.text('Se otorga la presente a:', pageWidth / 2, 80, { align: 'center' });
+
+      doc.setFontSize(28);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 104, 71);
+      doc.text(name.toUpperCase(), pageWidth / 2, 95, { align: 'center' });
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Estudiante de: ${grade}`, pageWidth / 2, 110, { align: 'center' });
+
+      doc.text('Por haber completado con éxito la actividad interactiva.', pageWidth / 2, 125, { align: 'center' });
+
+      // Scores
+      doc.setDrawColor(200, 200, 200);
+      doc.line(40, 135, pageWidth - 40, 135);
+
+      doc.setFontSize(14);
+      doc.text(`Aciertos en Trivia: ${quizScore} de ${totalQuestions}`, 60, 150);
+      doc.text(`Puntos en Juego de Unión: ${matchScore}`, 60, 160);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Puntaje Total: ${totalScore} / ${maxScore}`, 60, 175);
+
+      // Date
+      const today = new Date().toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      doc.text(`Fecha: ${today}`, pageWidth - 60, 185, { align: 'right' });
+
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Generado automáticamente por la App Educativa de la Bandera de México', pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+      doc.save(`Comprobante_${name.replace(/\s+/g, '_')}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Hubo un error al generar el PDF. Por favor intenta de nuevo.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   let feedbackMessage = '';
   if (percentage >= 90) {
@@ -127,15 +216,31 @@ export default function ResultsScreen({
             </p>
           </div>
 
-          <button
-            onClick={onRestart}
-            className="inline-flex items-center gap-3 px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:-translate-y-1"
-          >
-            <RefreshCw size={20} />
-            Jugar de Nuevo
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isGenerating ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <FileText size={20} />
+              )}
+              Descargar Comprobante PDF
+            </button>
+
+            <button
+              onClick={onRestart}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white font-bold rounded-xl shadow-lg transition-transform transform hover:-translate-y-1"
+            >
+              <RefreshCw size={20} />
+              Jugar de Nuevo
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
   );
 }
+
